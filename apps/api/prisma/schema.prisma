@@ -6,16 +6,129 @@ generator client {
 }
 
 datasource db {
-  provider = "mysql"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
-model Sample {
-  id        Int      @id @default(autoincrement())
-  name      String
-  code      String   @unique
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+model User { 
+  id                  Int    @id @default(autoincrement())
+  name                String @db.VarChar(100)
+  email               String @db.VarChar(60)
+  password            String @db.VarChar(255)
+  created_at          DateTime @default(now())
+  updated_at          DateTime @updatedAt
+  referral_code       String @db.VarChar(100)
+  referral_point      ReferralPoint[]
+  user_event          UserEvent[]
 
-  @@map("samples") // if you want to use snake_case format
+  @@map("users")
+}
+
+model UserEvent{
+  id                  Int    @id @default(autoincrement())
+  user_id             Int
+  user                User @relation(fields: [user_id], references: [id])
+  event_id            Int
+  event               Event @relation(fields: [event_id], references: [id])
+  is_participant      Boolean
+  is_organizer        Boolean
+
+  @@map("user_events")
+}
+
+model Event {
+  id                    Int    @id @default(autoincrement())
+  event_name            String @db.VarChar(100)
+  start_date            DateTime
+  end_date              DateTime
+  status                String @db.VarChar(60)
+  description           String @db.VarChar(255) 
+  total_participant     Int
+  created_at            DateTime @default(now())
+  updated_at            DateTime @updatedAt
+  address               String @db.VarChar(255)
+  ticket_price          Int
+  ticket_stock          Int
+  transaction_events    TransactionEvent[]
+  event_images          EventImage[]
+  user_event            UserEvent[]
+  event_review          EventReview[]
+  event_categories      EventCategory[]
+  
+
+  @@map("events")
+}
+
+model EventReview {
+  id                  Int    @id @default(autoincrement())
+  event_id            Int
+  event               Event @relation(fields: [event_id], references: [id])
+  title               String @db.VarChar(255)
+  description         String @db.VarChar(255)
+  ratings             Int
+
+  @@map("event_reviews")
+
+}
+
+model EventCategory {
+  id                  Int    @id @default(autoincrement())
+  event_id            Int
+  event               Event @relation(fields: [event_id],references:[id])
+  category_id         Int
+  category            Category @relation(fields: [category_id], references: [id])
+
+  @@map("event_categories")
+}
+
+model Category {
+  id                  Int    @id @default(autoincrement())
+  category            String @db.VarChar(100)
+  event_category      EventCategory[]
+  
+  @@map("categories")
+}
+
+model ReferralPoint{
+  id                  Int    @id @default(autoincrement())
+  created_at          DateTime
+  expire_at           DateTime
+  point               Int
+  transaction         Transaction[]
+  user_id             Int
+  user                User @relation(fields: [user_id], references: [id])
+  
+
+  @@map("referral_points")
+  
+}
+
+model Transaction{
+  id                      Int    @id @default(autoincrement())
+  created_at              DateTime
+  is_using_referral_code  Boolean
+  referral_point_id       Int
+  referral_point          ReferralPoint @relation(fields: [referral_point_id], references: [id])
+  transaction_event       TransactionEvent[]
+
+
+  @@map("transactions")
+}
+
+model TransactionEvent{
+  id                  Int    @id @default(autoincrement())
+  transaction_id      Int
+  transaction         Transaction @relation(fields: [transaction_id], references: [id])
+  event_id            Int
+  event               Event @relation(fields: [event_id], references: [id])
+
+  @@map("transaction_events")
+}
+
+model EventImage{
+  id                  Int    @id @default(autoincrement())
+  image_link          String @db.VarChar
+  event_id            Int
+  event               Event @relation(fields: [event_id], references: [id])
+  @@map("event_images")
 }
