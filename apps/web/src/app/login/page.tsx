@@ -1,9 +1,67 @@
-import React from "react";
+'use client'
+
+import { useRouter } from 'next/navigation'
+import axios from 'axios'
+import Cookies from 'js-cookie'
+import { Formik, Form, Field, ErrorMessage, FormikHelpers } from 'formik'
+import * as Yup from 'yup'
 
 
-const LoginPage = () => {
+interface LoginFormValues {
+  email: string;
+  password: string;
+  remember: boolean;
+}
+export function LoginForm() {
+  const router = useRouter()
+
+  const initialValues: LoginFormValues = {
+    email: '',
+    password: '',
+    remember: false,
+  }
+
+  const validationSchema = Yup.object({
+    email: Yup.string().email('Email is not valid').required('Must be filled'),
+    password: Yup.string().required('Must be filled'),
+  })
+
+  const handleSubmit = async (values: LoginFormValues, { setSubmitting }: FormikHelpers<LoginFormValues>) => {
+    try {
+      const response = await axios.post(`${process.env.NEXT_PUBLIC_BASE_API_URL}login`, {
+        email: values.email,
+        password: values.password,
+      })
+
+      if (response.status === 200) {
+        const { token } = response.data.data // Akses token dari response.data.data
+        if (token) {
+          Cookies.set('token', token, { expires: 7 }) // Simpan token dalam cookie selama 7 hari
+          console.log('Login success')
+          router.push('/')
+        } else {
+          console.error('Token not found in respons')
+        }
+      } else {
+        console.error('Login failed')
+      }
+    } catch (error) {
+      console.error('Error', error)
+    }
+    setSubmitting(false)
+  }
+
+
+  
+  const LoginPage = () => {
 
   return (
+    <Formik
+    initialValues={initialValues}
+    validationSchema={validationSchema}
+    onSubmit={handleSubmit}
+  >
+    <Form>
     <div className="flex flex-col items-center justify-center min-h-screen py-2 bg-gray-100">
       <form
         className="flex flex-col items-center justify-center flex-1 w-full px-20 text-center"
@@ -20,30 +78,11 @@ const LoginPage = () => {
               </h2>
               <div className="inline-block w-10 mb-2 border-2 border-blue-800"></div>
               <div className="flex flex-col items-center">
-                <div className="bg-gray-200 w-64 p-2 mb-3 flex items-center">
-                  <input
-                    type="email"
-                    placeholder="Email"
-                    className="bg-gray-200 outline-none text-sm flex-1"
-                  />
-                </div>
-                {(
-                  <p className="text-red-500 text-xs"></p>
-                )}
-
-                <div className="bg-gray-200 w-64 p-2 mb-3 flex items-center">
-                  <input
-                    type="password"
-                    
-                    
-                    placeholder="Password"
-                    className="bg-gray-200 outline-none text-sm flex-1"
-                  />
-                </div>
-               
-                
-
-                <div className="flex justify-between w-64 mb-5">
+                <Field name="email" type="email" placeholder="Email" className="mb-4" />
+                <ErrorMessage name="email" component="div" className="text-red-500 mb-4" />
+                <Field name="password" type="password" placeholder="Password" className="mb-4" />
+                <ErrorMessage name="password" component="div" className="text-red-500 mb-4" />
+                  <div className="flex justify-between w-64 mb-5">
                   <label className="flex items-center text-xs font-semibold">
                   </label>
                   <a href="#" className="text-xs font-semibold">
@@ -76,7 +115,9 @@ const LoginPage = () => {
         </div>
       </form>
     </div>
+    </Form>
+  </Formik>
+    
   );
-};
-
-export default LoginPage;
+ };
+}
